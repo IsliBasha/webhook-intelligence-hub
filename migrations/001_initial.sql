@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   event_type   text        NOT NULL,
   raw_payload  jsonb       NOT NULL,
   classified   jsonb,
+  last_error   text,
   status       text        DEFAULT 'pending',
   attempts     integer     DEFAULT 0,
   created_at   timestamptz DEFAULT now(),

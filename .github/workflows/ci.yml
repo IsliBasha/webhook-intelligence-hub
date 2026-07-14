@@ -11,16 +11,25 @@ jobs:
         image: postgres:16-alpine
         env: { POSTGRES_DB: webhooks, POSTGRES_USER: user, POSTGRES_PASSWORD: password }
         ports: ['5432:5432']
-      redis:
-        image: redis:7-alpine
-        ports: ['6379:6379']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: 'npm' }
       - run: npm ci
       - run: npm run typecheck
+      # Applied in filename order (001_, 002_, ...) — migrations/*.sql has
+      # no separate runner script, so this expands the same way a
+      # contributor following the README's Quick Start would.
+      - name: Apply migrations
+        run: for f in migrations/*.sql; do psql "$DATABASE_URL" -f "$f"; done
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/webhooks
       - run: npm run test:coverage
         env:
           DATABASE_URL: postgresql://user:password@localhost:5432/webhooks
-          REDIS_URL: redis://localhost:6379
+          TEST_DATABASE_URL: postgresql://user:password@localhost:5432/webhooks
